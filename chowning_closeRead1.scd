@@ -35,7 +35,7 @@ y = Synth(\fm_idxenv, [\freq, 55.midicps,
 )
 
 // there is a right way and a wrong way to do
-// fm synthesis this is the right way
+// fm synthesis this is maybe the right way?
 
 (
 SynthDef(\fm_syncro, {
@@ -61,6 +61,8 @@ SynthDef(\fm_syncro, {
 
 }).add;
 )
+
+
 
 (
 // a ratio of 1:3 mod:car
@@ -148,6 +150,38 @@ b.stop;
 p.stop;
 )
 
+
+// Chowning Implementation: basic
+(
+SynthDef(\chow_basic, {
+	arg p4=1, p5=220, p6=220, p7=220;
+	var ug1,ug2,ug3;
+
+	ug1 = p7 * SinOsc.ar(p6);
+
+	ug3 = p4 * SinOsc.ar(p5, add: ug1);
+
+	//ug3 = LPF.ar(ug3, 440);
+
+	ug3 = Pan2.ar(ug3,0);
+
+	Out.ar(0,ug3);
+
+}).add;
+)
+
+(
+y = Synth(\chow_basic, [
+	\p4, 1,
+	\p5, 440,
+	\p6, 1200,
+	\p7, 4,
+]);
+)
+y.free;
+s.freeAll;
+
+
 // P1 : begin time of instr
 // P2 : instr number
 // P3 : duration of note
@@ -185,13 +219,14 @@ SynthDef(\fm_chow, {
 		[0,p1,p3.reciprocal,p3],
 	));
 
-	// oscs and additions
-	ug6 = dev1 * ug5;
-	ug1 = SinOsc.ar(p6 + ug6);
-	ug2 = p5 * ug1;
+// oscs and additions
+	ug6 = dev1 + ug5;
+	ug1 = ug6 * SinOsc.ar(p6);
+	ug2 = p5 + ug1;
 	ug3 = ug4 * SinOsc.ar(ug2);
 
 	ug3 = Pan2.ar(ug3,0);
+
 
 	Out.ar(0,ug3);
 }).add;
@@ -287,6 +322,7 @@ SynthDef(\fm_chow_xr, {
 	ug1, ug2, ug3, ug4, ug5, ug6,
 	// 4->7 1->8;
 	ug7, ug8, ug9, ug10, ug11,
+	//ug12, ug13, ug14, ug15,
 	sig;
 
 	dev1 = p7*p6;
@@ -303,19 +339,22 @@ SynthDef(\fm_chow_xr, {
 	));
 
 	// oscs and additions
-	ug6 = dev1 * ug5;
-	ug1 = SinOsc.ar(p6 + ug6);
-	ug2 = p5 * ug1;
+	ug6 = dev1 + ug5;
+	ug1 = ug6 * SinOsc.ar(p6);
+	ug2 = p5 + ug1;
 	ug3 = ug4 * SinOsc.ar(ug2);
 
-	ug8 = ug4 * p11;
-	ug9 = ug8 * p12;
-	ug7 = p10 * ug1;
-	ug10 = SinOsc.ar(ug7) * ug9;
+	// oscs for formant
+	ug8 = ug1 * p11;
+	ug9 = ug8 + p12;
+	ug7 = p10 * ug4;
+	ug10 = SinOsc.ar(ug9, mul: ug7);
 
 	ug11 = ug3 + ug10;
 
-	sig = Pan2.ar(ug11,0);
+	sig =LeakDC.ar(ug11);
+
+	sig = Pan2.ar(sig,0);
 
 	Out.ar(0,sig);
 }).add;
@@ -324,15 +363,15 @@ SynthDef(\fm_chow_xr, {
 (
 //
 y = Synth(\fm_chow_xr, [
-	\p3, 4,
+	\p3, 0.2,
 	\p4, 1,
-	\p5, 300,
-	\p6, 300,
-	\p7, 0,
+	\p5, 250,
+	\p6, 250,
+	\p7, 1,
 	\p8, 3,
 	\p10, 0.2,
 	\p11, 0.5,
-	\p12, 2400
+	\p12, 2100
 ]);
 )
 
