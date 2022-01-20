@@ -10,6 +10,7 @@
 */
 
 (
+// from eli fieldstein on youtube
 SynthDef(\fm_idxenv, {
 	arg freq=440, mRatio=1, cRatio=1, modAmp=220, iScale=5,
 	amp=0.2, atk=0.01, rel=3, pan=0, index=1, cAtk=(-4), cRel=4;
@@ -174,7 +175,7 @@ SynthDef(\chow_basic, {
 y = Synth(\chow_basic, [
 	\p4, 1,
 	\p5, 440,
-	\p6, 1200,
+	\p6, 500,
 	\p7, 4,
 ]);
 )
@@ -365,16 +366,272 @@ SynthDef(\fm_chow_xr, {
 y = Synth(\fm_chow_xr, [
 	\p3, 0.2,
 	\p4, 1,
-	\p5, 250,
-	\p6, 250,
+	\p5, 900,
+	\p6, 600,
 	\p7, 1,
 	\p8, 3,
 	\p10, 0.2,
 	\p11, 0.5,
-	\p12, 2100
+	\p12, 900
 ]);
 )
 
+// now use cRatio and mRatio to make chowning's
+// easier to use and more harmonic
+// also make input names better
+// switch placement of reciprocal for len env
+(
+SynthDef(\fm_chow_xrII, {
+	arg attack=0.01, len=1, amp=0.7,
+	carHz=220, modRatio=1,
+	idx1=2, idx2=8,
+	formScale=1, scaleDev=1, formHz=500;
+	var modHz,
+	dev1, dev2,
+	ug1, ug2, ug3, ug4, ug5, ug6,
+	// 4->7 1->8;
+	ug7, ug8, ug9, ug10, ug11,
+	//ug12, ug13, ug14, ug15,
+	sig;
+
+	modHz = carHz * modRatio;
+
+	dev1 = idx1*modHz;
+	dev2 = (idx2-idx1)*modHz;
+
+	// envelopes (fig 11)
+	ug5 = EnvGen.kr(Env.new(
+		[0,dev2,0.75*dev2,0],
+		[0,attack,len,len.reciprocal],
+	), doneAction:2);
+	ug4 = EnvGen.kr(Env.new(
+		[0,amp,0.75*amp,0],
+		[0,attack,len,len.reciprocal],
+	));
+
+	// oscs and additions
+	ug6 = dev1 + ug5;
+	ug1 = ug6 * SinOsc.ar(modHz);
+	ug2 = carHz + ug1;
+	ug3 = ug4 * SinOsc.ar(ug2);
+
+	// oscs for formant
+	ug8 = ug1 * scaleDev;
+	ug9 = ug8 + formHz;
+	ug7 = formScale * ug4;
+	ug10 = SinOsc.ar(ug9, mul: ug7);
+
+	ug11 = ug3 + ug10;
+
+	sig =LeakDC.ar(ug11);
+
+	sig = Pan2.ar(sig,0);
+
+	Out.ar(0,sig);
+}).add;
+)
+
+(
+// sounds same as fm_chow_xr
+// with args as above
+y = Synth(\fm_chow_xrII, [
+	\len, 10,
+	\amp, 1,
+	\carHz, 900,
+	\modRatio, 2/3,
+	\idx1, 1,
+	\idx2, 3,
+	\formScale, 0.2,
+	\scaleDev, 0.5,
+	\formHz, 900
+]);
+)
+
+// bhairav etude chow_xrII
+(
+p = Pbind(
+	// clarinet
+	// duration between thread spawns
+	\dur, 1/9,
+	\instrument, \fm_chow_xrII,
+	// thread args
+	\attack, Pexprand(0.001,0.05),
+	\len, Pexprand(0.5, 2.0),
+	\amp, Pexprand(0.1,0.9),
+	\carHz, Prand(Scale.bhairav.degrees+70,inf).round(1).midicps,
+	\modRatio, 2/3,
+	\idx1, Pwhite(1,5),
+	\idx2, Pwhite(1,5),
+	\formScale, 0.2,
+	\scaleDev, 0.5,
+	\formHz, Prand(Scale.bhairav.degrees+90,inf).round(1).midicps
+).play;
+
+b = Pbind(
+	// wood drum
+	// duration of thread spawns
+	\dur, Pseq(#[
+		0.22222222222222,
+		0.88888888888889,
+		0.33333333333333,
+		0.33333333333333,
+		0.77777777777778,
+		0.11111111111111,
+		0.11111111111111,
+		0.33333333333333 ]
+	,inf),
+	\instrument, \fm_chow_xrII,
+	// thread args
+	\attack, Pexprand(0.001,0.05),
+	\len, Pseq(#[
+		0.22222222222222,
+		0.88888888888889,
+		0.33333333333333,
+		0.33333333333333,
+		0.77777777777778,
+		0.11111111111111,
+		0.11111111111111,
+		0.33333333333333 ]
+	,inf),
+	\amp, Pwhite(0.4,0.7),
+	\carHz, Prand(Scale.bhairav.degrees+10,inf).round(1).midicps,
+	\modRatio, 0.6875,
+	\idx1, 0,
+	\idx2, 25,
+	\formScale, 0.2,
+	\scaleDev, 0.5,
+	\formHz, Prand(Scale.bhairav.degrees+20,inf).round(1).midicps
+).play;
+)
+
+s.reboot;
+
+(
+p.stop;
+b.stop;
+)
+
+
+// now with formant ratio
+(
+SynthDef(\fm_chow_xrIII, {
+	arg attack=0.01, len=1, amp=0.7,
+	carHz=220, modRatio=1,
+	idx1=2, idx2=8,
+	formScale=1, scaleDev=1, formRatio=1;
+	var modHz, formHz,
+	dev1, dev2,
+	ug1, ug2, ug3, ug4, ug5, ug6,
+	// 4->7 1->8;
+	ug7, ug8, ug9, ug10, ug11,
+	//ug12, ug13, ug14, ug15,
+	sig;
+
+	modHz = carHz * modRatio;
+	formHz = carHz * formRatio;
+
+	dev1 = idx1*modHz;
+	dev2 = (idx2-idx1)*modHz;
+
+	// envelopes (fig 11)
+	ug5 = EnvGen.kr(Env.new(
+		[0,dev2,0.75*dev2,0],
+		[0,attack,len,len.reciprocal],
+	), doneAction:2);
+	ug4 = EnvGen.kr(Env.new(
+		[0,amp,0.75*amp,0],
+		[0,attack,len,len.reciprocal],
+	));
+
+	// oscs and additions
+	ug6 = dev1 + ug5;
+	ug1 = ug6 * SinOsc.ar(modHz);
+	ug2 = carHz + ug1;
+	ug3 = ug4 * SinOsc.ar(ug2);
+
+	// oscs for formant
+	ug8 = ug1 * scaleDev;
+	ug9 = ug8 + formHz;
+	ug7 = formScale * ug4;
+	ug10 = SinOsc.ar(ug9, mul: ug7);
+
+	ug11 = ug3 + ug10;
+
+	sig =LeakDC.ar(ug11);
+
+	sig = Pan2.ar(sig,0);
+
+	Out.ar(0,sig);
+}).add;
+)
+
+// bhairav etude_chow_xrIII
+(
+p = Pbind(
+	// clarinet
+	// duration between thread spawns
+	\dur, 1/9,
+	\instrument, \fm_chow_xrIII,
+	// thread args
+	\attack, Pexprand(0.001,0.05),
+	\len, Pexprand(0.5, 2.0),
+	\amp, Pexprand(0.1,0.9),
+	\carHz, Prand(Scale.bhairav.degrees+70,inf).round(1).midicps,
+	\modRatio, 2/3,
+	\idx1, Pwhite(1,5),
+	\idx2, Pwhite(1,5),
+	\formScale, 0.2,
+	\scaleDev, 0.5,
+	\formRatio, 3.5
+);
+
+b = Pbind(
+	// wood drum
+	// duration of thread spawns
+	\dur, Pseq(#[
+		0.22222222222222,
+		0.88888888888889,
+		0.33333333333333,
+		0.33333333333333,
+		0.77777777777778,
+		0.11111111111111,
+		0.11111111111111,
+		0.33333333333333 ]
+	,inf),
+	\instrument, \fm_chow_xrII,
+	// thread args
+	\attack, Pexprand(0.001,0.05),
+	\len, Pseq(#[
+		0.22222222222222,
+		0.88888888888889,
+		0.33333333333333,
+		0.33333333333333,
+		0.77777777777778,
+		0.11111111111111,
+		0.11111111111111,
+		0.33333333333333 ]
+	,inf),
+	\amp, Pwhite(0.4,0.7),
+	\carHz, Prand(Scale.bhairav.degrees+10,inf).round(1).midicps,
+	\modRatio, 0.6875,
+	\idx1, 0,
+	\idx2, 25,
+	\formScale, 0,
+	\scaleDev, 0,
+	\formRatio, 0
+);
+)
+
+// treated as a global instance, easier to control
+(
+~p_instance = p.play;
+~b_instance = b.play;
+)
+
+(
+~p_instance.stop;
+~b_instance.stop;
+)
 
 /*
 CHOWNING, JOHN M. “The Synthesis of Complex Audio
