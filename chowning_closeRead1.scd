@@ -602,14 +602,14 @@ b = Pbind(
 	// thread args
 	\attack, Pexprand(0.001,0.05),
 	\len, Pseq(#[
-		0.22222222222222,
-		0.88888888888889,
-		0.33333333333333,
-		0.33333333333333,
-		0.77777777777778,
-		0.11111111111111,
-		0.11111111111111,
-		0.33333333333333 ]
+		0.22,
+		0.88,
+		0.33,
+		0.33,
+		0.77,
+		0.11,
+		0.11,
+		0.33 ]
 	,inf),
 	\amp, Pwhite(0.4,0.7),
 	\carHz, Prand(Scale.bhairav.degrees+10,inf).round(1).midicps,
@@ -632,6 +632,106 @@ b = Pbind(
 ~p_instance.stop;
 ~b_instance.stop;
 )
+
+// add a second formant ugen
+// now with formant ratio
+(
+SynthDef(\fm_chow_xrIV, {
+	// args better defined in
+	// CMJ 1.2:466-54 (1977)
+	arg attack=0.01, len=1, amp=0.7,
+	carHz=220, modRatio=1,
+	idx1=2, idx2=8,
+	// formant A args
+	formAScale=1, scaleADev=1,
+	formARatio=1,
+	// formant B args
+	formBScale=1, scaleBDev=1,
+	formBRatio=1;
+
+	var modHz,
+	dev1, dev2,
+	// basic FM ugens
+	ug1, ug2, ug3, ug4, ug5, ug6,
+	// formant A ugens and params
+	formAHz,
+	ug7, ug8, ug9, ug10,
+	// formant B ugens and params
+	formBHz,
+	ug11, ug12, ug13, ug14,
+	// output
+	ug15, sig;
+
+	// modulation relative to carrier
+	modHz = carHz * modRatio;
+	// formant A should rely on carrier
+	formAHz = carHz * formARatio;
+	// formant B should rely on formant A
+	formBHz = formAHz * formBRatio;
+
+	dev1 = idx1*modHz;
+	dev2 = (idx2-idx1)*modHz;
+
+	// envelopes (fig 11)
+	ug5 = EnvGen.kr(Env.new(
+		[0,dev2,0.75*dev2,0],
+		[0,attack,len,len.reciprocal],
+	), doneAction:2);
+	ug4 = EnvGen.kr(Env.new(
+		[0,amp,0.75*amp,0],
+		[0,attack,len,len.reciprocal],
+	));
+
+	// oscs and additions
+	ug6 = dev1 + ug5;
+	ug1 = ug6 * SinOsc.ar(modHz);
+	ug2 = carHz + ug1;
+	ug3 = ug4 * SinOsc.ar(ug2);
+
+	// oscs for formant A
+	ug8 = ug1 * scaleADev;
+	ug9 = ug8 + formAHz;
+	ug7 = formAScale * ug4;
+	ug10 = SinOsc.ar(ug9, mul: ug7);
+
+	// oscs for formant B
+	ug12 = ug1 * scaleBDev;
+	ug13 = ug12 + formBHz;
+	ug11 = formBScale * ug4;
+	ug14 = SinOsc.ar(ug13, mul: ug11);
+
+	ug15 = ug3 + ug10 + ug14;
+
+	sig =LeakDC.ar(ug15);
+
+	sig = Pan2.ar(sig,0);
+
+	Out.ar(0,sig);
+}).add;
+)
+
+(
+// sounds same as fm_chow_xr
+// with args as above
+y = Synth(\fm_chow_xrII, [
+	// approximates a front close vowel
+	// needs better env
+	\len, 10,
+	\amp, 1,
+	\carHz, 440,
+	\modRatio, 1,
+	\idx1, 1,
+	\idx2, 3,
+	\formAScale, 0.2,
+	\scaleADev, 0.5,
+	\formARatio, 6/11,
+	\formBScale, 0.2,
+	\scaleBDev, 0.5,
+	\formBRatio, 10
+]);
+)
+
+s.freeAll;
 
 /*
 CHOWNING, JOHN M. “The Synthesis of Complex Audio
