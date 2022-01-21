@@ -1,5 +1,5 @@
 /***
-* proginoskes
+* proginoskes; 2022-01-19
 *
 * this is a study of fm synthesis after
 * a few days break from SCD
@@ -704,6 +704,8 @@ SynthDef(\fm_chow_xrIV, {
 
 	sig =LeakDC.ar(ug15);
 
+	sig = LPF.ar(sig, 1600);
+
 	sig = Pan2.ar(sig,0);
 
 	Out.ar(0,sig);
@@ -729,6 +731,156 @@ y = Synth(\fm_chow_xrII, [
 	\scaleBDev, 0.5,
 	\formBRatio, 10
 ]);
+)
+
+// bhairav etude
+(
+p = Pbind(
+	// clarinet
+	// duration between thread spawns
+	\dur, 1/9,
+	\instrument, \fm_chow_xrIV,
+	// thread args
+	\attack, Pexprand(0.001,0.05),
+	\len, Pexprand(0.5, 2.0),
+	\amp, Pexprand(0.1,0.9),
+	\carHz, Prand(Scale.bhairav.degrees+70,inf).round(1).midicps,
+	\modRatio, 2/3,
+	\idx1, Pwhite(1,5),
+	\idx2, Pwhite(1,5),
+	\formAScale, 0.2,
+	\scaleADev, 0.5,
+	\formARatio, 3.5,
+	\formBScale, 0.2,
+	\scaleBDev, 0.5,
+	\formABatio, 3.5
+);
+
+b = Pbind(
+	// wood drum
+	// duration of thread spawns
+	\dur, Pseq(#[
+		0.22222222222222,
+		0.88888888888889,
+		0.33333333333333,
+		0.33333333333333,
+		0.77777777777778,
+		0.11111111111111,
+		0.11111111111111,
+		0.33333333333333 ]
+	,inf),
+	\instrument, \fm_chow_xrIV,
+	// thread args
+	\attack, Pexprand(0.001,0.05),
+	\len, Pseq(#[
+		0.22,
+		0.88,
+		0.33,
+		0.33,
+		0.77,
+		0.11,
+		0.11,
+		0.33 ]
+	,inf),
+	\amp, Pwhite(0.4,0.7),
+	\carHz, Prand(Scale.bhairav.degrees+10,inf).round(1).midicps,
+	\modRatio, 0.6875,
+	\idx1, 0,
+	\idx2, 25,
+	\formAScale, 0,
+	\scaleADev, 0,
+	\formARatio, 0,
+	\formBScale, 0,
+	\scaleBDev, 0,
+	\formBRatio, 0
+);
+)
+
+// treated as a global instance, easier to control
+(
+~p_instance = p.play;
+~b_instance = b.play;
+)
+
+(
+~p_instance.stop;
+~b_instance.stop;
+)
+
+// another etude
+(
+p = Pbind(
+	// clarinet
+	// duration between thread spawns
+	\dur, 1/9,
+	\instrument, \fm_chow_xrIV,
+	// thread args
+	\attack, Pexprand(0.001,0.05),
+	\len, Pexprand(0.5, 2.0),
+	\amp, Pexprand(0.1,0.9),
+	\carHz, Prand(Scale.minorPentatonic.degrees+70,inf).round(1).midicps,
+	\modRatio, 2/3,
+	\idx1, Pwhite(1,5),
+	\idx2, Pwhite(1,5),
+	\formAScale, Pwhite(0,2,inf),
+	\scaleADev, Pwhite(0,4,inf),
+	\formARatio, Pwhite(1.9,2,inf),
+	\formBScale, Pwhite(0.2,1,inf),
+	\scaleBDev, Pwhite(0,4,inf),
+	\formBRatio, Pwhite(1.9,2,inf)
+);
+
+b = Pbind(
+	// wood drum
+	// duration of thread spawns
+	\dur, Pseq(#[
+		0.22222222222222,
+		0.88888888888889,
+		0.33333333333333,
+		0.33333333333333,
+		0.77777777777778,
+		0.11111111111111,
+		0.11111111111111,
+		0.33333333333333 ]
+	,inf),
+	\instrument, \fm_chow_xrIV,
+	// thread args
+	\attack, Pexprand(0.001,0.05),
+	\len, Pseq(#[
+		0.22,
+		0.88,
+		0.33,
+		0.33,
+		0.77,
+		0.11,
+		0.11,
+		0.33 ]
+	,inf),
+	\amp, Pwhite(0.4,0.7),
+	\carHz, Prand(Scale.minorPentatonic.degrees+10,inf).round(1).midicps,
+	\modRatio, 0.6875,
+	\idx1, 0,
+	\idx2, 25,
+	\formAScale, Pwhite(0,4,inf),
+	\scaleADev, Pwhite(0,4,inf),
+	\formARatio, Pwhite(1.2,4,inf),
+	\formBScale, Pwhite(0.2,4,inf),
+	\scaleBDev, Pwhite(0,4,inf),
+	\formBRatio, Pwhite(0.2,4,inf)
+);
+)
+
+Scale.directory;
+
+// treated as a global instance, easier to control
+(
+~p_instance = p.play;
+~b_instance = b.play;
+)
+
+(
+~p_instance.stop;
+~b_instance.stop;
 )
 
 s.freeAll;
