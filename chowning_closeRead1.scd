@@ -667,7 +667,7 @@ SynthDef(\fm_chow_xrIV, {
 	// formant A should rely on carrier
 	formAHz = carHz * formARatio;
 	// formant B should rely on formant A
-	formBHz = formAHz * formBRatio;
+	formBHz = carHz * formBRatio;
 
 	dev1 = idx1*modHz;
 	dev2 = (idx2-idx1)*modHz;
@@ -841,7 +841,7 @@ b = Pbind(
 		0.77777777777778,
 		0.11111111111111,
 		0.11111111111111,
-		0.33333333333333 ]
+		0.33333333333333 ]*4
 	,inf),
 	\instrument, \fm_chow_xrIV,
 	// thread args
@@ -854,19 +854,19 @@ b = Pbind(
 		0.77,
 		0.11,
 		0.11,
-		0.33 ]
+		0.33 ]*4
 	,inf),
 	\amp, Pwhite(0.4,0.7),
-	\carHz, Prand(Scale.minorPentatonic.degrees+10,inf).round(1).midicps,
+	\carHz, Prand(Scale.minorPentatonic.degrees+34,inf).round(1).midicps,
 	\modRatio, 0.6875,
 	\idx1, 0,
-	\idx2, 25,
-	\formAScale, Pwhite(0,4,inf),
-	\scaleADev, Pwhite(0,4,inf),
-	\formARatio, Pwhite(1.2,4,inf),
-	\formBScale, Pwhite(0.2,4,inf),
-	\scaleBDev, Pwhite(0,4,inf),
-	\formBRatio, Pwhite(0.2,4,inf)
+	\idx2, 2,
+	\formAScale, Pwhite(0,2,inf),
+	\scaleADev, Pwhite(0,2,inf),
+	\formARatio, Pwhite(1.2,2,inf),
+	\formBScale, Pwhite(0.2,2,inf),
+	\scaleBDev, Pwhite(0,2,inf),
+	\formBRatio, Pwhite(0.2,2,inf)
 );
 )
 
