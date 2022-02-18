@@ -33,14 +33,16 @@
 ({a = SinOsc.ar(440, 0, 0.2)}.plot;
 {b = SinOsc.ar(880,0,0.2)}.plot;
 
-// additive synthesis, could go on any number of times. can only add ugens
-// because we are using analog synthesis
-// we add formants to the carrier (lowest) frequency
+// additive synthesis, could go on any number of times. can only add entire wave
+// generators because we are using analog synthesis
+// we add formants (overtones/higher frequencies) to the carrier (lowest) frequency
+// to get the right sound
 {c = SinOsc.ar(440,0,0.2) + SinOsc.ar(880,0,0.125) + SinOsc.ar(1760,0,0.1)!2}.plot;
 
 
-// FM synthesis, where we add to the carrier frequency
-// an extent of deviation multiplied by a ugen changes at the rate of deviation
+// FM synthesis,
+// where we add directly to the carrier frequency
+// a multiple of the extent of change every portion of the cycle
 {d = SinOsc.ar(440 + (1760 * SinOsc.ar(880)))!2}.plot;
 
 
@@ -84,3 +86,118 @@ a = Synth(\fm_sample, [
 ])
 )
 a.free;
+
+
+Out.ar(0,PlayBuf.ar(2, ~wtbufnums[2])).play
+
+
+// bonus: WAVETABLE
+// we can change the place the wavetable goes in
+// the synth to have it modify different aspects
+// of the sound
+//
+// need to have wavetables added from startup file
+(
+SynthDef(\fm_wavetable, {
+	arg freq=440, atk=0.01, rel=2,
+	curveA=5, curveB=(-6),
+	carRatio = 1, amp=0.6,
+	modRatio=10, modIdx=10, modIdxScale = 1,
+	wtIdx=1, wtRatio=0.01, wtIdxScale = 1;
+	var sigCar, sigMod, sigOut, sigWT,
+	wtIndexEnv, modIndexEnv, env,
+	wtFreq, modFreq, carFreq;
+
+	wtIndexEnv = EnvGen.kr(
+		Env.new(
+			[wtIdx, wtIdx *  wtIdxScale, wtIdx],
+			[atk, rel],
+			[curveA, curveB]
+		)
+	);
+
+	modIndexEnv = EnvGen.kr(
+		Env.new(
+			[modIdx, modIdx *  modIdxScale, modIdx],
+			[atk, rel],
+			[curveA, curveB]
+		)
+	);
+
+	carFreq = freq * carRatio;
+	modFreq = freq * modRatio;
+	wtFreq = freq * wtRatio;
+
+
+	env = EnvGen.kr(Env.perc(atk,rel,curve:[5,-6]),doneAction:2);
+
+	sigWT = (wtIndexEnv * wtFreq) * PlayBuf.ar(1, ~wtbufnums[47], rate:wtFreq, loop:1);
+	sigMod =  (modIndexEnv  * modFreq + sigWT) * SinOsc.ar(modFreq);
+	sigCar = env * amp * SinOsc.ar(freq + sigMod + sigWT);
+	sigOut = Pan2.ar(sigCar);
+	Out.ar(0,sigOut);
+}).add;
+)
+
+(
+// drum
+a = Synth(\fm_wavetable, [
+	\freq,30.midicps,
+	\wtRatio, 0.7, \wtIdx, 2, \wtIdxScale, 5,
+	\modRatio, 0.55, \modIdx, 2, \modIdxScale, 5,
+	\carRatio, 0.85, \amp, 0.5
+])
+)
+
+(
+// weird clarinet/oboe
+a = Synth(\fm_wavetable, [
+	\freq,50.midicps,
+	\wtRatio, 0.2, \wtIdx, 1, \wtIdxScale, 5,
+	\modRatio, 5, \modIdx, 1, \modIdxScale, 3,
+	\carRatio, 1, \amp, 0.5,
+	\atk, 0.1, \rel, 3
+])
+)
+
+(
+// weird clarinet/oboe
+a = Synth(\fm_wavetable, [
+	\freq,50.midicps,
+	\wtRatio, 0.2, \wtIdx, 1, \wtIdxScale, 5,
+	\modRatio, 3, \modIdx, 1, \modIdxScale, 3,
+	\carRatio, 2, \amp, 0.5,
+	\atk, 0.1, \rel, 3
+])
+)
+
+
+
+(
+~instruments = (
+	guitar: Pbind(
+		\dur, Pseq([1/2, Rest(1/2),1/4, Rest(1/4)],inf)/1,
+		\instrument, \fm_wavetable,
+		\freq, Pseq([
+			Pn((Scale.maj7.degrees+50).midicps , 4),
+			Pn((Scale.dom7.degrees+54).midicps , 4),
+			Pn((Scale.maj7.degrees+55).midicps , 4),
+			Pn((Scale.dom7.degrees+45).midicps , 4)
+		],inf),//Pseq((Scale.major.degrees ++ Scale.bhairav.degrees.reverse + 60).midicps,inf),
+		\wtRatio, 1.2, \wtIdx, 1, \wtIdxScale, 1.2,
+		\modRatio, 4, \modIdx,0.3,\modIdxScale, 1.2,
+		\atk, 0.01, \rel, 0.5
+	)
+)
+)
+
+y = Psym(Prand(#[[guitar]], inf), ~instruments).play;
+
+y.stop;
+
+y.stop;
+
+s.freeAll;
+
+s.freeAll
+a.free
